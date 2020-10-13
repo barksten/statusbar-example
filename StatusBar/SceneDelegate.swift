@@ -5,8 +5,35 @@
 //  Created by Anders Östlin on 2020-10-13.
 //
 
+import ComposableArchitecture
 import UIKit
 import SwiftUI
+
+class MyHostingController<Content>: UIHostingController<Content> where Content : View {
+    
+    var viewStore: ViewStore<AppState, AppAction>
+        
+    init(viewStore: ViewStore<AppState, AppAction>, rootView: Content) {
+        self.viewStore = viewStore
+        super.init(rootView: rootView)
+    }
+    
+    @objc required dynamic init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override var preferredStatusBarStyle: UIStatusBarStyle {
+        switch self.viewStore.activeColorScheme {
+        case .light:
+            return .darkContent
+        case .dark:
+            return .lightContent
+        @unknown default:
+            return .lightContent
+        }
+    }
+}
+
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -19,12 +46,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
 
         // Create the SwiftUI view that provides the window contents.
-        let contentView = ContentView()
+        let store: Store<AppState, AppAction> = .init(initialState: AppState(), reducer: appRecucer, environment: AppEnvironment())
+        
+        let contentView = ContentView(store: store)
 
         // Use a UIHostingController as window root view controller.
         if let windowScene = scene as? UIWindowScene {
             let window = UIWindow(windowScene: windowScene)
-            window.rootViewController = UIHostingController(rootView: contentView)
+            window.rootViewController = MyHostingController(
+                viewStore: ViewStore(store),
+                rootView: contentView)
             self.window = window
             window.makeKeyAndVisible()
         }
